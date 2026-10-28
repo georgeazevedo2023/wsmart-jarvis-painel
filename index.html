@@ -44,7 +44,37 @@
   nav.tabs::-webkit-scrollbar { display: none; }
   nav.tabs button { background: none; border: 0; padding: 8px 14px; border-radius: 999px; color: var(--muted); cursor: pointer; white-space: nowrap; }
   nav.tabs button.on { background: var(--cyan-dim); color: var(--cyan); }
-  main { max-width: 1180px; margin: 0 auto; padding: 20px; }
+  main { max-width: 1280px; margin: 0 auto; padding: 20px; }
+  header.top .brand { flex: none; }
+  .top-right { display: flex; gap: 10px; align-items: center; min-width: 0; }
+  #whoami { max-width: 36vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .tab-badge { display: inline-block; min-width: 18px; padding: 0 5px; margin-left: 4px; border-radius: 999px; background: var(--cyan); color: #04121c; font-size: 11px; font-weight: 700; line-height: 18px; text-align: center; }
+  .tab-badge:empty { display: none; }
+
+  /* atendimento (helpdesk) */
+  .inbox { display: grid; grid-template-columns: 340px 1fr; height: calc(100vh - 190px); min-height: 480px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+  .inbox-list { border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; }
+  .inbox-tools { padding: 12px; border-bottom: 1px solid var(--line); display: grid; gap: 10px; }
+  #inboxItems { overflow-y: auto; flex: 1; }
+  .conv { width: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--line); padding: 12px; cursor: pointer; }
+  .conv:hover { background: var(--panel2); }
+  .conv.on { background: var(--cyan-dim); }
+  .avatar { flex: none; width: 38px; height: 38px; border-radius: 50%; display: grid; place-items: center; background: var(--panel2); border: 1px solid var(--line); font-weight: 700; font-size: 13px; color: var(--cyan); }
+  .conv-main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .conv-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+  .ellipsis { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; min-width: 0; }
+  .unread { width: 10px; height: 10px; border-radius: 50%; background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+  .unread-text { color: var(--text); font-weight: 600; }
+  .inbox-chat { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
+  .chat-head { padding: 12px 16px; border-bottom: 1px solid var(--line); display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+  .chat-banner { padding: 8px 16px; font-size: 13px; background: var(--cyan-dim); color: #bfefff; }
+  .chat-banner.human { background: rgba(245,185,66,.1); color: #f8d690; }
+  #chatThread { flex: 1; overflow-y: auto; padding: 16px; max-height: none; }
+  .composer { border-top: 1px solid var(--line); padding: 12px; display: grid; gap: 8px; }
+  .composer textarea { min-height: 46px; max-height: 160px; resize: vertical; }
+  .bubble.failed { border: 1px solid var(--red); }
+  #chatEmpty { display: grid; place-items: center; height: 100%; text-align: center; padding: 24px; }
+  #chatBack { display: none; }
   h2 { font-size: 20px; margin: 4px 0 16px; }
   h3 { font-size: 15px; margin: 0 0 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
   .grid { display: grid; gap: 16px; }
@@ -120,6 +150,11 @@
     nav.tabs { padding: 8px 16px; }
     dl.data { grid-template-columns: 110px 1fr; }
     #whoami { display: none; }
+    .inbox { grid-template-columns: 1fr; height: calc(100vh - 150px); }
+    .inbox .inbox-chat { display: none; }
+    .inbox.show-chat .inbox-list { display: none; }
+    .inbox.show-chat .inbox-chat { display: flex; }
+    #chatBack { display: inline-block; }
   }
 </style>
 </head>
@@ -144,10 +179,11 @@
 <section id="app" class="hidden">
   <header class="top">
     <div class="brand"><div class="reactor"></div><div><b>JARVIS</b><small>IA da Wsmart Digital</small></div></div>
-    <div class="row"><span class="small muted" id="whoami"></span><button class="btn ghost sm" id="logoutBtn">Sair</button></div>
+    <div class="top-right"><span class="small muted" id="whoami"></span><button class="btn ghost sm" id="logoutBtn">Sair</button></div>
   </header>
   <nav class="tabs" id="tabs">
     <button data-view="overview" class="on">Visão geral</button>
+    <button data-view="inbox">Atendimento<span class="tab-badge" id="inboxTabBadge"></span></button>
     <button data-view="leads">Leads</button>
     <button data-view="qr">QR Code do evento</button>
     <button data-view="test">Testar o Jarvis</button>
@@ -162,6 +198,44 @@
         <div class="card"><h3>WhatsApp</h3><div id="waStatus" class="muted">Verificando…</div></div>
       </div>
       <div class="card" style="margin-top:16px"><h3>Últimos leads</h3><div id="recentLeads" class="muted">Carregando…</div></div>
+    </div>
+
+    <!-- ATENDIMENTO -->
+    <div id="v-inbox" class="view hidden">
+      <div class="inbox" id="inboxWrap">
+        <aside class="inbox-list">
+          <div class="inbox-tools">
+            <input class="i" id="inboxSearch" placeholder="Buscar conversa…">
+            <div class="chips" id="inboxChips"></div>
+          </div>
+          <div id="inboxItems"></div>
+        </aside>
+        <section class="inbox-chat">
+          <div id="chatEmpty" class="muted">Escolha uma conversa para acompanhar e responder.</div>
+          <div id="chatPane" class="hidden" style="display:flex;flex-direction:column;height:100%;min-height:0">
+            <div class="chat-head">
+              <div class="row" style="min-width:0;flex-wrap:nowrap">
+                <button class="btn ghost sm" id="chatBack">←</button>
+                <div style="min-width:0"><b id="chatName" class="ellipsis"></b><div class="small muted" id="chatSub"></div></div>
+              </div>
+              <div class="row">
+                <button class="btn sm" id="chatToggle"></button>
+                <a class="btn ghost sm" id="chatWa" target="_blank" rel="noopener" style="text-decoration:none">WhatsApp</a>
+                <button class="btn ghost sm" id="chatInfo">Ficha</button>
+              </div>
+            </div>
+            <div class="chat-banner" id="chatBanner"></div>
+            <div class="thread" id="chatThread"></div>
+            <form class="composer" id="chatForm">
+              <textarea class="i" id="chatText" placeholder="Escreva sua mensagem… (Enter envia, Shift+Enter quebra linha)"></textarea>
+              <div class="row between">
+                <label class="row small muted" id="chatTakeOverRow" style="gap:8px"><input type="checkbox" id="chatTakeOver" checked> Assumir a conversa (o Jarvis pausa)</label>
+                <button class="btn" id="chatSend" style="margin-left:auto">Enviar</button>
+              </div>
+            </form>
+          </div>
+        </section>
+      </div>
     </div>
 
     <!-- LEADS -->
@@ -242,6 +316,7 @@
             </select></div>
           <div><label class="f" for="cfgOwner">Seu WhatsApp para avisos de visita (com 55 e DDD)</label><input class="i" id="cfgOwner" inputmode="numeric" placeholder="5581999999999"></div>
           <div><label class="f" for="cfgName">Nome do agente</label><input class="i" id="cfgName"></div>
+          <div><label class="f" for="cfgGreeting">Mensagem de boas-vindas (primeira resposta a quem chega pelo QR)</label><textarea class="i" id="cfgGreeting" style="min-height:80px"></textarea></div>
           <h3 style="margin-top:20px">Agenda de visitas</h3>
           <div><label class="f" for="cfgSlots">Horários de início (separados por vírgula)</label><input class="i" id="cfgSlots" placeholder="09:00, 10:30, 14:00, 15:30"></div>
           <div><label class="f">Dias da semana</label><div class="chips" id="cfgDays"></div></div>
@@ -361,7 +436,7 @@ async function loadAll() {
   const [leads, visits, config] = await Promise.all([
     sb.from('wsdr_leads').select('*').order('created_at', { ascending: false }).limit(500),
     sb.from('wsdr_visits').select('*').eq('status', 'agendada').gte('starts_at', new Date().toISOString()).order('starts_at'),
-    sb.from('wsdr_config').select('id, agent_name, owner_phone, business_info, slot_times, work_days, blocked_dates, min_notice_hours, ai_enabled, reply_mode, wa_number, qr_message').eq('id', 1).single(),
+    sb.from('wsdr_config').select('id, agent_name, owner_phone, business_info, slot_times, work_days, blocked_dates, min_notice_hours, ai_enabled, reply_mode, wa_number, qr_message, greeting').eq('id', 1).single(),
   ])
   state.leads = leads.data || []
   state.visits = visits.data || []
@@ -369,6 +444,7 @@ async function loadAll() {
   state.config = config.data
   if (first) { fillSettings(); fillQr() } else if (!$('qrNumber').value && state.config?.wa_number) fillQr()
   renderOverview(); renderLeads()
+  if (state.view !== 'inbox') loadInbox()
   if (state.openLead) refreshThread()
 }
 
@@ -464,23 +540,28 @@ async function refreshThread() {
   const { data } = await sb.from('wsdr_messages').select('*').eq('lead_id', state.openLead).order('id').limit(300)
   renderLeadDetail()
   const t = $('mThread')
-  t.innerHTML = (data || []).map((m) => {
-    const who = m.direction === 'in' ? 'lead' : m.sent_by === 'owner' ? 'equipe Wsmart' : m.sent_by === 'system' ? 'Jarvis (automático)' : 'Jarvis'
-    return `<div class="bubble ${m.direction} ${m.sent_by === 'owner' ? 'owner' : ''}">${m.kind === 'audio' ? '🎙️ ' : ''}${esc(m.content || '')}<span class="meta">${who} · ${esc(fmtAgo(m.created_at))}</span></div>`
-  }).join('') || '<span class="muted">Sem mensagens.</span>'
+  t.innerHTML = (data || []).map(msgBubble).join('') || '<span class="muted">Sem mensagens.</span>'
   t.scrollTop = t.scrollHeight
+}
+function msgBubble(m) {
+  const who = m.direction === 'in' ? 'lead' : m.sent_by === 'owner' ? 'equipe Wsmart' : m.sent_by === 'system' ? 'Jarvis (automático)' : 'Jarvis'
+  return `<div class="bubble ${m.direction} ${m.sent_by === 'owner' ? 'owner' : ''}">${m.kind === 'audio' ? '🎙️ ' : ''}${esc(m.content || '')}<span class="meta">${who} · ${esc(fmtAgo(m.created_at))}</span></div>`
+}
+const QUAL_FIELDS = ['full_name', 'company', 'city', 'instagram', 'main_pain', 'employees_band', 'revenue_band']
+/** Pausar ↔ retomar o Jarvis. Ao retomar, o status volta ao ponto da qualificação */
+async function toggleAi(lead) {
+  const visit = state.visits.find((v) => v.lead_id === lead.id)
+  const patch = lead.ai_paused
+    ? { ai_paused: false, status: visit ? 'agendado' : QUAL_FIELDS.every((k) => lead[k]) ? 'qualificado' : 'qualificando' }
+    : { ai_paused: true, status: 'humano' }
+  const { error } = await sb.from('wsdr_leads').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', lead.id)
+  if (error) { alert(error.message); return null }
+  return patch
 }
 $('mClose').addEventListener('click', () => { state.openLead = null; $('leadModal').classList.add('hidden') })
 $('leadModal').addEventListener('click', (e) => { if (e.target.id === 'leadModal') $('mClose').click() })
 $('mToggleAi').addEventListener('click', async () => {
-  const l = leadById(state.openLead)
-  const visit = state.visits.find((v) => v.lead_id === l.id)
-  const patch = l.ai_paused
-    ? { ai_paused: false, status: visit ? 'agendado' : 'qualificando' }
-    : { ai_paused: true, status: 'humano' }
-  const { error } = await sb.from('wsdr_leads').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', l.id)
-  if (error) return alert(error.message)
-  await loadAll()
+  if (await toggleAi(leadById(state.openLead))) await loadAll()
 })
 $('mDelete').addEventListener('click', async () => {
   const l = leadById(state.openLead)
@@ -577,7 +658,7 @@ $('simReset').addEventListener('click', async () => {
 function fillSettings() {
   const c = state.config; if (!c) return
   $('cfgEnabled').checked = c.ai_enabled; $('cfgMode').value = c.reply_mode
-  $('cfgOwner').value = c.owner_phone || ''; $('cfgName').value = c.agent_name
+  $('cfgOwner').value = c.owner_phone || ''; $('cfgName').value = c.agent_name; $('cfgGreeting').value = c.greeting || ''
   $('cfgSlots').value = (c.slot_times || []).join(', '); $('cfgBlocked').value = (c.blocked_dates || []).join(', ')
   $('cfgNotice').value = c.min_notice_hours; $('cfgBusiness').value = c.business_info
   $('cfgDays').innerHTML = DAYS.map((d, i) => `<button type="button" class="chip ${(c.work_days || []).includes(i) ? 'on' : ''}" data-day="${i}">${d}</button>`).join('')
@@ -594,7 +675,8 @@ $('cfgForm').addEventListener('submit', async (e) => {
     owner_phone: $('cfgOwner').value.replace(/\D/g, '') || null, agent_name: $('cfgName').value.trim() || 'Jarvis',
     slot_times: slots, blocked_dates: blocked, min_notice_hours: Number($('cfgNotice').value || 0),
     work_days: [...document.querySelectorAll('#cfgDays .chip.on')].map((b) => Number(b.dataset.day)),
-    business_info: $('cfgBusiness').value.trim(), updated_at: new Date().toISOString(),
+    business_info: $('cfgBusiness').value.trim(), greeting: $('cfgGreeting').value.trim() || state.config.greeting,
+    updated_at: new Date().toISOString(),
   }
   const { error } = await sb.from('wsdr_config').update(patch).eq('id', 1)
   if (error) return flash('cfgMsg', error.message, true)
@@ -611,6 +693,136 @@ $('pwdForm').addEventListener('submit', async (e) => {
 })
 function flash(id, text, isErr) { const el = $(id); el.textContent = text; el.className = `small ${isErr ? 'err' : 'ok'}`; setTimeout(() => { el.textContent = '' }, 5000) }
 
+// ── atendimento (helpdesk) ───────────────────────────────────────────
+const inbox = { rows: [], filter: 'todas', query: '', open: null, lastId: 0, loading: false, timer: null }
+const INBOX_FILTERS = [['todas', 'Todas'], ['precisa', 'Precisa de você'], ['jarvis', 'Jarvis atendendo'], ['agendado', 'Agendados'], ['teste', 'Testes']]
+// última mensagem vista por conversa: conveniência local deste navegador
+const seenGet = () => { try { return JSON.parse(localStorage.getItem('wsdr_seen') || '{}') } catch { return {} } }
+const seenSet = (id, msgId) => { try { const s = seenGet(); s[id] = msgId; localStorage.setItem('wsdr_seen', JSON.stringify(s)) } catch { /* sem storage */ } }
+const initials = (n) => String(n || '?').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')
+const needsHuman = (r) => r.ai_paused && r.last_direction === 'in'
+const isUnread = (r, seen) => r.last_direction === 'in' && r.last_msg_id > (seen[r.id] || 0) && r.id !== inbox.open
+const fmtShort = (iso) => {
+  const day = (d) => fmtDate(d, { day: '2-digit', month: '2-digit', year: 'numeric' })
+  return day(iso) === day(new Date().toISOString()) ? fmtDate(iso, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }) : fmtDate(iso, { day: '2-digit', month: '2-digit' })
+}
+
+async function loadInbox() {
+  const { data, error } = await sb.from('wsdr_inbox').select('*').order('last_at', { ascending: false, nullsFirst: false }).limit(300)
+  if (error) return
+  inbox.rows = data || []
+  const seen = seenGet()
+  const pending = inbox.rows.filter((r) => !isTest(r) && (isUnread(r, seen) || needsHuman(r))).length
+  $('inboxTabBadge').textContent = pending || ''
+  document.title = pending ? `(${pending}) Jarvis · Wsmart Digital` : 'Jarvis · Wsmart Digital'
+  if (state.view === 'inbox') renderInboxList()
+  if (inbox.open) await loadThread()
+}
+
+function renderInboxList() {
+  const seen = seenGet(), q = inbox.query.toLowerCase()
+  const precisa = inbox.rows.filter((r) => !isTest(r) && needsHuman(r)).length
+  $('inboxChips').innerHTML = INBOX_FILTERS.map(([v, l]) =>
+    `<button class="chip ${inbox.filter === v ? 'on' : ''}" data-ifilter="${v}">${l}${v === 'precisa' && precisa ? ` (${precisa})` : ''}</button>`).join('')
+  const rows = inbox.rows.filter((r) => {
+    if (inbox.filter === 'teste') return isTest(r)
+    if (isTest(r)) return false
+    if (inbox.filter === 'precisa' && !needsHuman(r)) return false
+    if (inbox.filter === 'jarvis' && r.ai_paused) return false
+    if (inbox.filter === 'agendado' && r.status !== 'agendado') return false
+    return !q || [r.full_name, r.push_name, r.company, r.phone].some((v) => (v || '').toLowerCase().includes(q))
+  })
+  $('inboxItems').innerHTML = rows.map((r) => {
+    const name = r.full_name || r.push_name || r.phone
+    const who = r.last_direction === 'in' ? '' : r.last_sent_by === 'owner' ? 'Você: ' : 'Jarvis: '
+    const preview = `${who}${r.last_kind === 'audio' ? '🎙️ ' : ''}${r.last_content || ''}`
+    const unread = isUnread(r, seen)
+    return `<button class="conv ${inbox.open === r.id ? 'on' : ''}" data-conv="${esc(r.id)}">
+      <span class="avatar">${esc(initials(name))}</span>
+      <span class="conv-main">
+        <span class="row between" style="flex-wrap:nowrap"><b class="ellipsis">${esc(name)}</b><span class="small muted">${r.last_at ? esc(fmtShort(r.last_at)) : ''}</span></span>
+        <span class="small muted ellipsis">${esc(r.company || '')}</span>
+        <span class="small ellipsis ${unread ? 'unread-text' : 'muted'}">${esc(preview)}</span>
+      </span>
+      <span class="conv-side">${unread ? '<span class="unread"></span>' : ''}${needsHuman(r) ? '<span class="badge st-humano">você</span>' : r.ai_paused ? '<span class="badge">pausado</span>' : ''}</span>
+    </button>`
+  }).join('') || '<div class="muted small" style="padding:16px">Nenhuma conversa aqui.</div>'
+}
+
+async function openConv(id) {
+  inbox.open = id; inbox.lastId = 0
+  $('inboxWrap').classList.add('show-chat')
+  $('chatEmpty').classList.add('hidden'); $('chatPane').classList.remove('hidden')
+  $('chatThread').innerHTML = ''
+  renderChatHeader(); renderInboxList()
+  await loadThread()
+  $('chatText').focus()
+}
+
+async function loadThread() {
+  if (inbox.loading || !inbox.open) return
+  inbox.loading = true
+  const id = inbox.open
+  try {
+    const { data } = await sb.from('wsdr_messages').select('*').eq('lead_id', id).gt('id', inbox.lastId).order('id').limit(500)
+    const fresh = (data || []).filter((m) => m.id > inbox.lastId)
+    if (id !== inbox.open) return
+    renderChatHeader()
+    if (!fresh.length) return
+    const t = $('chatThread'), first = inbox.lastId === 0
+    const atBottom = t.scrollHeight - t.scrollTop - t.clientHeight < 80
+    t.insertAdjacentHTML('beforeend', fresh.map(msgBubble).join(''))
+    inbox.lastId = fresh[fresh.length - 1].id
+    seenSet(id, inbox.lastId)
+    if (first || atBottom) t.scrollTop = t.scrollHeight
+  } finally { inbox.loading = false }
+}
+
+function renderChatHeader() {
+  const r = inbox.rows.find((x) => x.id === inbox.open); if (!r) return
+  $('chatName').textContent = r.full_name || r.push_name || r.phone
+  $('chatSub').innerHTML = `${esc(r.company || 'empresa não informada')} · ${esc(r.phone)} · ${scoreBadge(r.score)} ${statusBadge(r.status)}`
+  $('chatToggle').textContent = r.ai_paused ? 'Devolver para o Jarvis' : 'Assumir conversa'
+  $('chatBanner').textContent = r.ai_paused
+    ? '👤 Você está atendendo. O Jarvis está pausado nesta conversa.'
+    : '🤖 O Jarvis está atendendo. Se você enviar com "assumir" marcado, ele pausa.'
+  $('chatBanner').className = `chat-banner ${r.ai_paused ? 'human' : ''}`
+  $('chatWa').href = `https://wa.me/${r.phone}`
+  $('chatTakeOverRow').classList.toggle('hidden', r.ai_paused)
+}
+
+$('inboxChips').addEventListener('click', (e) => { const b = e.target.closest('[data-ifilter]'); if (b) { inbox.filter = b.dataset.ifilter; renderInboxList() } })
+$('inboxSearch').addEventListener('input', (e) => { inbox.query = e.target.value; renderInboxList() })
+$('inboxItems').addEventListener('click', (e) => { const b = e.target.closest('[data-conv]'); if (b) openConv(b.dataset.conv) })
+$('chatBack').addEventListener('click', () => { inbox.open = null; $('inboxWrap').classList.remove('show-chat'); renderInboxList() })
+$('chatInfo').addEventListener('click', () => openLead(inbox.open))
+$('chatToggle').addEventListener('click', async () => {
+  const r = inbox.rows.find((x) => x.id === inbox.open); if (!r) return
+  const patch = await toggleAi(r)
+  if (patch) { Object.assign(r, patch); renderChatHeader(); renderInboxList(); loadAll() }
+})
+$('chatText').addEventListener('keydown', (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('chatForm').requestSubmit() } })
+$('chatForm').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const text = $('chatText').value.trim(); if (!text || !inbox.open) return
+  const t = $('chatThread')
+  t.insertAdjacentHTML('beforeend', `<div class="bubble out owner sending">${esc(text)}<span class="meta">enviando…</span></div>`)
+  t.scrollTop = t.scrollHeight
+  $('chatText').value = ''; $('chatSend').disabled = true
+  try {
+    const res = await callFn('send', { lead_id: inbox.open, text, take_over: $('chatTakeOver').checked })
+    t.querySelector('.sending')?.remove()
+    const r = inbox.rows.find((x) => x.id === inbox.open)
+    if (r && res.ai_paused) { r.ai_paused = true; r.status = 'humano' }
+    await loadThread(); loadInbox()
+  } catch (err) {
+    const s = t.querySelector('.sending')
+    if (s) { s.classList.replace('sending', 'failed'); s.querySelector('.meta').textContent = `não enviada: ${err.message}` }
+    $('chatText').value = text
+  }
+  $('chatSend').disabled = false; $('chatText').focus()
+})
+
 // ── navegação ────────────────────────────────────────────────────────
 $('tabs').addEventListener('click', (e) => {
   const b = e.target.closest('[data-view]'); if (!b) return
@@ -619,6 +831,11 @@ $('tabs').addEventListener('click', (e) => {
   document.querySelectorAll('.view').forEach((v) => v.classList.toggle('hidden', v.id !== `v-${state.view}`))
   if (state.view === 'qr') drawQr()
   if (state.view === 'overview') loadWaStatus()
+  clearInterval(inbox.timer)
+  if (state.view === 'inbox') {
+    loadInbox()
+    inbox.timer = setInterval(() => { if (document.visibilityState === 'visible') loadInbox() }, 4000)
+  }
 })
 </script>
 </body>
