@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jarvis · Wsmart Digital</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='none' stroke='%2338d6ff' stroke-width='4'/%3E%3Ccircle cx='16' cy='16' r='5' fill='%23dff8ff'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@600;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+<style>
+  :root {
+    --bg: #070b16; --panel: #0e1526; --panel2: #131c31; --line: #1f2b45; --text: #e6edf7; --muted: #8a9ab5;
+    --cyan: #38d6ff; --cyan-dim: rgba(56, 214, 255, .12); --gold: #f5b942; --red: #ff5d6c; --green: #3ddc97;
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 Inter, system-ui, sans-serif; }
+  body { min-height: 100vh; background: radial-gradient(1200px 600px at 80% -10%, rgba(56,214,255,.08), transparent), var(--bg); }
+  a { color: var(--cyan); }
+  button, input, select, textarea { font: inherit; color: inherit; }
+  .hidden { display: none !important; }
+
+  /* marca */
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .reactor { width: 34px; height: 34px; border-radius: 50%; flex: none; border: 2px solid var(--cyan);
+    box-shadow: 0 0 14px var(--cyan), inset 0 0 10px var(--cyan); background: radial-gradient(circle, #dff8ff 0 18%, var(--cyan) 22%, transparent 48%); }
+  .brand b { font-family: Orbitron, sans-serif; letter-spacing: .12em; font-size: 18px; }
+  .brand small { display: block; color: var(--muted); font-size: 12px; letter-spacing: .04em; }
+
+  /* login */
+  #login { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  .login-card { width: 100%; max-width: 380px; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 28px; }
+  .login-card h1 { font-size: 18px; margin: 22px 0 4px; }
+  .login-card p { color: var(--muted); margin: 0 0 18px; font-size: 14px; }
+
+  /* layout */
+  header.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    padding: 12px 20px; background: rgba(7,11,22,.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+  nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 10px 20px; border-bottom: 1px solid var(--line); }
+  nav.tabs button { background: none; border: 0; padding: 8px 14px; border-radius: 999px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+  nav.tabs button.on { background: var(--cyan-dim); color: var(--cyan); }
+  main { max-width: 1180px; margin: 0 auto; padding: 20px; }
+  h2 { font-size: 20px; margin: 4px 0 16px; }
+  h3 { font-size: 15px; margin: 0 0 12px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .06em; }
+  .grid { display: grid; gap: 16px; }
+  .g4 { grid-template-columns: repeat(4, 1fr); }
+  .g2 { grid-template-columns: 1.4fr 1fr; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; min-width: 0; }
+  .kpi .v { font-size: 30px; font-weight: 700; }
+  .kpi .l { color: var(--muted); font-size: 13px; }
+  .muted { color: var(--muted); }
+  .small { font-size: 13px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .between { justify-content: space-between; }
+  .stack > * + * { margin-top: 12px; }
+
+  /* formulários */
+  label.f { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input.i, select.i, textarea.i { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; outline: none; }
+  input.i:focus, select.i:focus, textarea.i:focus { border-color: var(--cyan); }
+  textarea.i { min-height: 110px; resize: vertical; }
+  .btn { background: var(--cyan); color: #04121c; border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 600; cursor: pointer; }
+  .btn:disabled { opacity: .5; cursor: wait; }
+  .btn.ghost { background: transparent; color: var(--text); border: 1px solid var(--line); }
+  .btn.danger { background: transparent; color: var(--red); border: 1px solid rgba(255,93,108,.4); }
+  .btn.sm { padding: 6px 12px; font-size: 13px; }
+  .err { color: var(--red); font-size: 14px; min-height: 20px; }
+  .ok { color: var(--green); font-size: 14px; }
+
+  /* badges */
+  .badge { display: inline-block; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--panel2); border: 1px solid var(--line); white-space: nowrap; }
+  .s-A { background: rgba(61,220,151,.15); color: var(--green); border-color: transparent; }
+  .s-B { background: rgba(245,185,66,.15); color: var(--gold); border-color: transparent; }
+  .s-C { background: rgba(138,154,181,.15); color: var(--muted); border-color: transparent; }
+  .st-agendado { color: var(--green); } .st-humano { color: var(--gold); } .st-qualificado { color: var(--cyan); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; background: var(--muted); }
+  .dot.on { background: var(--green); box-shadow: 0 0 8px var(--green); } .dot.off { background: var(--red); }
+  .warn { background: rgba(245,185,66,.08); border: 1px solid rgba(245,185,66,.35); color: #f8d690; border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+
+  /* tabela */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .05em; font-weight: 600; }
+  tbody tr { cursor: pointer; } tbody tr:hover { background: var(--panel2); }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { background: var(--panel2); border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; cursor: pointer; font-size: 13px; }
+  .chip.on { border-color: var(--cyan); color: var(--cyan); }
+  .list-item { padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .list-item:last-child { border-bottom: 0; }
+
+  /* conversa */
+  .thread { display: flex; flex-direction: column; gap: 8px; max-height: 460px; overflow-y: auto; padding: 4px; }
+  .bubble { max-width: 82%; padding: 9px 12px; border-radius: 14px; white-space: pre-wrap; word-wrap: break-word; font-size: 14px; }
+  .bubble.in { align-self: flex-start; background: var(--panel2); border-bottom-left-radius: 4px; }
+  .bubble.out { align-self: flex-end; background: rgba(56,214,255,.14); border-bottom-right-radius: 4px; }
+  .bubble.owner { background: rgba(245,185,66,.14); }
+  .bubble .meta { display: block; font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .bubble audio { display: block; margin-top: 6px; width: 240px; max-width: 100%; }
+
+  /* modal */
+  .modal { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.6); display: grid; place-items: center; padding: 16px; }
+  .modal-box { width: 100%; max-width: 920px; max-height: 92vh; overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px; }
+  dl.data { display: grid; grid-template-columns: 140px 1fr; gap: 6px 12px; margin: 0; font-size: 14px; }
+  dl.data dt { color: var(--muted); } dl.data dd { margin: 0; word-break: break-word; }
+
+  /* QR */
+  #qrCanvas { width: 100%; max-width: 360px; border-radius: 16px; display: block; margin: 0 auto; }
+
+  @media (max-width: 860px) {
+    .g4 { grid-template-columns: repeat(2, 1fr); }
+    .g2 { grid-template-columns: 1fr; }
+    main { padding: 16px; }
+    header.top { padding: 12px 16px; }
+    nav.tabs { padding: 8px 16px; }
+    dl.data { grid-template-columns: 110px 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<section id="login" class="hidden">
+  <form class="login-card" id="loginForm">
+    <div class="brand"><div class="reactor"></div><div><b>JARVIS</b><small>Wsmart Digital · painel</small></div></div>
+    <h1>Entrar</h1>
+    <p>Acesso restrito aos administradores do Jarvis.</p>
+    <div class="stack">
+      <div><label class="f" for="email">E-mail</label><input class="i" id="email" type="email" autocomplete="username" required></div>
+      <div><label class="f" for="password">Senha</label><input class="i" id="password" type="password" autocomplete="current-password" required></div>
+      <div class="err" id="loginErr"></div>
+      <button class="btn" style="width:100%" id="loginBtn">Entrar</button>
+    </div>
+  </form>
+</section>
+
+<!-- APP -->
+<section id="app" class="hidden">
+  <header class="top">
+    <div class="brand"><div class="reactor"></div><div><b>JARVIS</b><small>IA da Wsmart Digital</small></div></div>
+    <div class="row"><span class="small muted" id="whoami"></span><button class="btn ghost sm" id="logoutBtn">Sair</button></div>
+  </header>
+  <nav class="tabs" id="tabs">
+    <button data-view="overview" class="on">Visão geral</button>
+    <button data-view="leads">Leads</button>
+    <button data-view="qr">QR Code do evento</button>
+    <button data-view="test">Testar o Jarvis</button>
+    <button data-view="settings">Configurações</button>
+  </nav>
+  <main>
+    <!-- VISÃO GERAL -->
+    <div id="v-overview" class="view">
+      <div class="grid g4" id="kpis"></div>
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card"><h3>Próximas visitas</h3><div id="upcoming" class="muted">Carregando…</div></div>
+        <div class="card"><h3>WhatsApp</h3><div id="waStatus" class="muted">Verificando…</div></div>
+      </div>
+      <div class="card" style="margin-top:16px"><h3>Últimos leads</h3><div id="recentLeads" class="muted">Carregando…</div></div>
+    </div>
+
+    <!-- LEADS -->
+    <div id="v-leads" class="view hidden">
+      <div class="row between" style="margin-bottom:14px">
+        <div class="chips" id="statusChips"></div>
+        <input class="i" id="search" placeholder="Buscar nome, empresa, cidade…" style="max-width:280px">
+      </div>
+      <div class="card table-wrap" style="padding:0">
+        <table>
+          <thead><tr><th>Lead</th><th>Cidade</th><th>Nota</th><th>Status</th><th>Funcionários</th><th>Faturamento</th><th>Chegou</th></tr></thead>
+          <tbody id="leadRows"></tbody>
+        </table>
+        <div id="leadEmpty" class="muted hidden" style="padding:18px">Nenhum lead ainda.</div>
+      </div>
+    </div>
+
+    <!-- QR -->
+    <div id="v-qr" class="view hidden">
+      <div class="grid g2">
+        <div class="card stack">
+          <h3>Cartão para mostrar aos empresários</h3>
+          <canvas id="qrCanvas" width="1080" height="1350"></canvas>
+          <div class="row" style="justify-content:center">
+            <button class="btn" id="dlCard">Baixar cartão (PNG)</button>
+            <button class="btn ghost" id="dlQr">Baixar só o QR</button>
+          </div>
+        </div>
+        <div class="card stack">
+          <h3>Link do QR</h3>
+          <div><label class="f" for="qrNumber">Número da Wsmart (com 55 e DDD)</label><input class="i" id="qrNumber" inputmode="numeric"></div>
+          <div><label class="f" for="qrMessage">Mensagem que já vem escrita</label><input class="i" id="qrMessage"></div>
+          <div class="warn small" id="qrWarn">Mantenha a palavra <b>Rodada</b> na mensagem: no modo "só leads da campanha" é ela que faz o Jarvis reconhecer quem veio do evento.</div>
+          <div class="small muted" style="word-break:break-all" id="qrLink"></div>
+          <div class="row">
+            <button class="btn" id="qrSave">Salvar</button>
+            <button class="btn ghost" id="qrCopy">Copiar link</button>
+            <a class="btn ghost" id="qrOpen" target="_blank" rel="noopener" style="text-decoration:none">Abrir no WhatsApp</a>
+          </div>
+          <div class="small" id="qrMsg"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TESTE -->
+    <div id="v-test" class="view hidden">
+      <div class="grid g2">
+        <div class="card stack">
+          <div class="row between"><h3 style="margin:0">Simulador</h3><button class="btn ghost sm" id="simReset">Recomeçar</button></div>
+          <div class="thread" id="simThread" style="min-height:320px"></div>
+          <form id="simForm" class="row" style="flex-wrap:nowrap">
+            <input class="i" id="simText" placeholder="Escreva como se fosse o empresário…" autocomplete="off">
+            <button class="btn" id="simSend">Enviar</button>
+          </form>
+          <label class="row small muted" style="gap:8px"><input type="checkbox" id="simAudio"> Enviar como áudio (o Jarvis responde com voz)</label>
+        </div>
+        <div class="card stack small">
+          <h3>Como testar</h3>
+          <p><b>1. Aqui no simulador</b>: nada vai para o WhatsApp. Comece pelo botão abaixo, que manda a mesma mensagem do QR. Marque "Enviar como áudio" para ouvir a voz do Jarvis.</p>
+          <button class="btn ghost sm" id="simQrMsg">Enviar a mensagem do QR</button>
+          <p><b>2. No WhatsApp de verdade</b>: escaneie o cartão da aba "QR Code do evento" com o seu celular pessoal (não o da Wsmart) e envie a mensagem que aparece. O Jarvis responde em segundos. Mande um áudio para testar a voz.</p>
+          <p><b>3. Depois de testar</b>: apague o seu lead de teste na aba Leads, para ele não entrar nas métricas.</p>
+          <p class="muted">Os testes do simulador usam um número fictício (5500000…) e são apagados com "Recomeçar".</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGURAÇÕES -->
+    <div id="v-settings" class="view hidden">
+      <div class="grid g2">
+        <form class="card stack" id="cfgForm">
+          <h3>Comportamento do Jarvis</h3>
+          <label class="row" style="gap:8px"><input type="checkbox" id="cfgEnabled"> Jarvis ligado (responde automaticamente)</label>
+          <div><label class="f" for="cfgMode">Quem o Jarvis atende</label>
+            <select class="i" id="cfgMode">
+              <option value="somente_origem">Só leads da campanha (mensagem do QR com "Rodada")</option>
+              <option value="todos">Todo contato novo que mandar mensagem</option>
+            </select></div>
+          <div><label class="f" for="cfgOwner">Seu WhatsApp para avisos de visita (com 55 e DDD)</label><input class="i" id="cfgOwner" inputmode="numeric" placeholder="5581999999999"></div>
+          <div><label class="f" for="cfgName">Nome do agente</label><input class="i" id="cfgName"></div>
+          <h3 style="margin-top:20px">Agenda de visitas</h3>
+          <div><label class="f" for="cfgSlots">Horários de início (separados por vírgula)</label><input class="i" id="cfgSlots" placeholder="09:00, 10:30, 14:00, 15:30"></div>
+          <div><label class="f">Dias da semana</label><div class="chips" id="cfgDays"></div></div>
+          <div><label class="f" for="cfgBlocked">Datas sem visita (AAAA-MM-DD, separadas por vírgula)</label><input class="i" id="cfgBlocked" placeholder="2026-11-02, 2026-11-15"></div>
+          <div><label class="f" for="cfgNotice">Antecedência mínima (horas)</label><input class="i" id="cfgNotice" type="number" min="0" max="168"></div>
+          <h3 style="margin-top:20px">O que o Jarvis sabe sobre a Wsmart</h3>
+          <textarea class="i" id="cfgBusiness"></textarea>
+          <div class="row"><button class="btn" id="cfgSave">Salvar configurações</button><span class="small" id="cfgMsg"></span></div>
+        </form>
+        <div class="stack">
+          <form class="card stack" id="pwdForm">
+            <h3>Trocar minha senha</h3>
+            <input class="i" id="pwd1" type="password" placeholder="Nova senha (mín. 10 caracteres)" autocomplete="new-password">
+            <input class="i" id="pwd2" type="password" placeholder="Repita a nova senha" autocomplete="new-password">
+            <div class="row"><button class="btn">Trocar senha</button><span class="small" id="pwdMsg"></span></div>
+          </form>
+          <div class="card small stack">
+            <h3>Comandos pelo WhatsApp</h3>
+            <p>Do número cadastrado em "avisos", mande para o WhatsApp da Wsmart:</p>
+            <p><b>#resumo</b>: leads das últimas 24h e próximas visitas<br><b>#pausar 5581…</b>: Jarvis para de responder esse lead<br><b>#retomar 5581…</b>: Jarvis volta a responder</p>
+            <p class="muted">Se alguém da equipe responder um lead pelo celular da Wsmart, o Jarvis pausa sozinho para aquele lead.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</section>
+
+<!-- MODAL LEAD -->
+<div class="modal hidden" id="leadModal">
+  <div class="modal-box">
+    <div class="row between" style="margin-bottom:14px">
+      <h2 id="mTitle" style="margin:0"></h2>
+      <button class="btn ghost sm" id="mClose">Fechar</button>
+    </div>
+    <div class="grid g2">
+      <div class="card"><h3>Conversa</h3><div class="thread" id="mThread"></div></div>
+      <div class="stack">
+        <div class="card"><h3>Dados</h3><dl class="data" id="mData"></dl></div>
+        <div class="card stack">
+          <h3>Ações</h3>
+          <div class="row">
+            <button class="btn sm" id="mToggleAi"></button>
+            <a class="btn ghost sm" id="mWa" target="_blank" rel="noopener" style="text-decoration:none">Abrir no WhatsApp</a>
+            <button class="btn danger sm" id="mDelete">Excluir lead</button>
+          </div>
+          <div class="small muted" id="mAiHint"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://tbjaxkyfvgetabjkeqdj.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRiamF4a3lmdmdldGFiamtlcWRqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYxMjQyNzgsImV4cCI6MjA5MTcwMDI3OH0.InAbfj3x8rIYixv7SBbnk4Q4szXbE5GHtBwIhq2XU4Q'
+const FN_URL = `${SUPABASE_URL}/functions/v1/wsdr-webhook`
+const TZ = 'America/Recife'
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+const $ = (id) => document.getElementById(id)
+const esc = (v) => String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]))
+const REVENUE = { ate_20k: 'até R$ 20 mil', '20k_100k': 'R$ 20–100 mil', '100k_500k': 'R$ 100–500 mil', '500k_1m': 'R$ 500 mil–1 mi', acima_1m: 'acima de R$ 1 mi', nao_informado: 'não informou' }
+const STATUS = { novo: 'Novo', qualificando: 'Qualificando', qualificado: 'Qualificado', agendado: 'Visita agendada', humano: 'Com humano', perdido: 'Perdido' }
+const DAYS = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sáb']
+const isTest = (l) => l.phone.startsWith('5500000')
+
+const state = { leads: [], visits: [], config: null, filter: 'todos', query: '', view: 'overview', openLead: null, timer: null }
+
+const fmtDate = (iso, opts) => new Intl.DateTimeFormat('pt-BR', { timeZone: TZ, ...opts }).format(new Date(iso))
+const fmtSlot = (iso) => fmtDate(iso, { weekday: 'short', day: '2-digit', month: '2-digit' }).replace('.', '') + ' às ' + fmtDate(iso, { hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+const fmtAgo = (iso) => fmtDate(iso, { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
+const scoreBadge = (s) => s ? `<span class="badge s-${s}">Nota ${s}</span>` : '<span class="muted">–</span>'
+const statusBadge = (s) => `<span class="badge st-${s}">${esc(STATUS[s] || s)}</span>`
+
+async function callFn(action, body) {
+  const { data: { session } } = await sb.auth.getSession()
+  const res = await fetch(`${FN_URL}?admin=${action}`, {
+    method: body ? 'POST' : 'GET',
+    headers: { Authorization: `Bearer ${session?.access_token}`, apikey: SUPABASE_KEY, 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined,
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data.error || `Erro ${res.status}`)
+  return data
+}
+
+// ── autenticação ─────────────────────────────────────────────────────
+$('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  $('loginBtn').disabled = true; $('loginErr').textContent = ''
+  const { error } = await sb.auth.signInWithPassword({ email: $('email').value.trim(), password: $('password').value })
+  $('loginBtn').disabled = false
+  if (error) $('loginErr').textContent = error.message === 'Invalid login credentials' ? 'E-mail ou senha incorretos.' : error.message
+})
+$('logoutBtn').addEventListener('click', () => sb.auth.signOut())
+
+sb.auth.onAuthStateChange((_event, session) => { setTimeout(() => boot(session), 0) })
+
+async function boot(session) {
+  clearInterval(state.timer)
+  if (!session) { $('app').classList.add('hidden'); $('login').classList.remove('hidden'); return }
+  const { data: admin } = await sb.from('wsdr_admins').select('role').eq('user_id', session.user.id).maybeSingle()
+  if (!admin) {
+    $('loginErr').textContent = 'Este usuário não tem acesso ao painel do Jarvis.'
+    await sb.auth.signOut(); return
+  }
+  $('whoami').textContent = `${session.user.email} · ${admin.role === 'super_admin' ? 'super admin' : 'admin'}`
+  $('login').classList.add('hidden'); $('app').classList.remove('hidden')
+  await loadAll()
+  loadWaStatus()
+  state.timer = setInterval(() => { if (document.visibilityState === 'visible') loadAll() }, 20000)
+}
+
+// ── dados ────────────────────────────────────────────────────────────
+async function loadAll() {
+  const [leads, visits, config] = await Promise.all([
+    sb.from('wsdr_leads').select('*').order('created_at', { ascending: false }).limit(500),
+    sb.from('wsdr_visits').select('*').eq('status', 'agendada').gte('starts_at', new Date().toISOString()).order('starts_at'),
+    sb.from('wsdr_config').select('id, agent_name, owner_phone, business_info, slot_times, work_days, blocked_dates, min_notice_hours, ai_enabled, reply_mode, wa_number, qr_message').eq('id', 1).single(),
+  ])
+  state.leads = leads.data || []
+  state.visits = visits.data || []
+  const first = !state.config
+  state.config = config.data
+  if (first) { fillSettings(); fillQr() } else if (!$('qrNumber').value && state.config?.wa_number) fillQr()
+  renderOverview(); renderLeads()
+  if (state.openLead) refreshThread()
+}
+
+async function loadWaStatus() {
+  try {
+    const s = await callFn('status')
+    if (!s.configured) { $('waStatus').innerHTML = '<span class="dot off"></span>Instância não configurada'; return }
+    const cfg = state.config || {}
+    const profileWarn = s.profile_name && !/wsmart/i.test(s.profile_name)
+      ? `<div class="warn small" style="margin-top:10px">O nome de perfil deste WhatsApp é <b>${esc(s.profile_name)}</b>. É o que o lead vê ao abrir a conversa. Troque para "Wsmart Digital" no app do WhatsApp.</div>` : ''
+    $('waStatus').innerHTML = `
+      <div class="list-item"><span class="dot ${s.connected ? 'on' : 'off'}"></span>${s.connected ? 'Conectado' : 'Desconectado'} · ${esc(s.number || '')}</div>
+      <div class="list-item"><span class="dot ${s.webhook_active ? 'on' : 'off'}"></span>${s.webhook_active ? 'Recebendo mensagens' : 'Webhook desligado'}</div>
+      <div class="list-item"><span class="dot ${cfg.ai_enabled ? 'on' : 'off'}"></span>Jarvis ${cfg.ai_enabled ? 'ligado' : 'desligado'} · ${cfg.reply_mode === 'todos' ? 'atende todo contato novo' : 'só leads da campanha'}</div>
+      ${profileWarn}`
+  } catch (err) { $('waStatus').innerHTML = `<span class="err">${esc(err.message)}</span>` }
+}
+
+// ── visão geral ──────────────────────────────────────────────────────
+function renderOverview() {
+  const real = state.leads.filter((l) => !isTest(l))
+  const k = (label, value, hint) => `<div class="card kpi"><div class="v">${value}</div><div class="l">${label}</div>${hint ? `<div class="small muted">${hint}</div>` : ''}</div>`
+  const today = fmtDate(new Date().toISOString(), { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const todayCount = real.filter((l) => fmtDate(l.created_at, { day: '2-digit', month: '2-digit', year: 'numeric' }) === today).length
+  $('kpis').innerHTML =
+    k('Leads', real.length, `${todayCount} hoje`) +
+    k('Qualificados', real.filter((l) => ['qualificado', 'agendado'].includes(l.status)).length, 'com os 7 dados') +
+    k('Visitas agendadas', state.visits.filter((v) => v.lead_id && !isTest(leadById(v.lead_id) || { phone: '' })).length) +
+    k('Nota A', real.filter((l) => l.score === 'A').length, 'maior porte')
+
+  const visits = state.visits.filter((v) => v.lead_id)
+  $('upcoming').innerHTML = visits.length ? visits.slice(0, 8).map((v) => {
+    const l = leadById(v.lead_id) || {}
+    return `<div class="list-item row between" data-lead="${esc(v.lead_id)}" style="cursor:pointer">
+      <div><b>${esc(fmtSlot(v.starts_at))}</b><div class="small muted">${esc(l.company || l.full_name || '')} · ${esc(v.address || '')}</div></div>${scoreBadge(l.score)}</div>`
+  }).join('') : '<span class="muted">Nenhuma visita agendada ainda.</span>'
+
+  $('recentLeads').innerHTML = real.length ? real.slice(0, 6).map((l) => `
+    <div class="list-item row between" data-lead="${esc(l.id)}" style="cursor:pointer">
+      <div><b>${esc(l.full_name || l.push_name || l.phone)}</b> <span class="muted small">${esc(l.company || '')}</span></div>
+      <div class="row">${scoreBadge(l.score)} ${statusBadge(l.status)}</div></div>`).join('') : '<span class="muted">Os leads aparecem aqui assim que escanearem o QR.</span>'
+}
+const leadById = (id) => state.leads.find((l) => l.id === id)
+document.addEventListener('click', (e) => { const el = e.target.closest('[data-lead]'); if (el) openLead(el.dataset.lead) })
+
+// ── leads ────────────────────────────────────────────────────────────
+const FILTERS = [['todos', 'Todos'], ['qualificando', 'Qualificando'], ['qualificado', 'Qualificados'], ['agendado', 'Agendados'], ['humano', 'Com humano'], ['teste', 'Testes']]
+function renderLeads() {
+  $('statusChips').innerHTML = FILTERS.map(([v, l]) => `<button class="chip ${state.filter === v ? 'on' : ''}" data-filter="${v}">${l}</button>`).join('')
+  const q = state.query.toLowerCase()
+  const rows = state.leads.filter((l) => {
+    if (state.filter === 'teste') return isTest(l)
+    if (isTest(l)) return false
+    if (state.filter !== 'todos' && l.status !== state.filter) return false
+    return !q || [l.full_name, l.company, l.city, l.push_name, l.phone].some((v) => (v || '').toLowerCase().includes(q))
+  })
+  $('leadEmpty').classList.toggle('hidden', rows.length > 0)
+  $('leadRows').innerHTML = rows.map((l) => `
+    <tr data-lead="${esc(l.id)}">
+      <td><b>${esc(l.full_name || l.push_name || l.phone)}</b><div class="small muted">${esc(l.company || '—')}</div></td>
+      <td>${esc(l.city || '—')}</td><td>${scoreBadge(l.score)}</td><td>${statusBadge(l.status)}${l.ai_paused ? ' <span class="badge">IA pausada</span>' : ''}</td>
+      <td>${esc(l.employees_band || '—')}</td><td>${esc(REVENUE[l.revenue_band] || '—')}</td><td class="small muted">${esc(fmtAgo(l.created_at))}</td>
+    </tr>`).join('')
+}
+$('statusChips').addEventListener('click', (e) => { const b = e.target.closest('[data-filter]'); if (b) { state.filter = b.dataset.filter; renderLeads() } })
+$('search').addEventListener('input', (e) => { state.query = e.target.value; renderLeads() })
+
+// ── detalhe do lead ──────────────────────────────────────────────────
+async function openLead(id) {
+  state.openLead = id
+  $('leadModal').classList.remove('hidden')
+  renderLeadDetail()
+  await refreshThread()
+}
+function renderLeadDetail() {
+  const l = leadById(state.openLead); if (!l) return
+  const visit = state.visits.find((v) => v.lead_id === l.id)
+  $('mTitle').textContent = l.full_name || l.push_name || l.phone
+  const row = (k, v) => `<dt>${k}</dt><dd>${v}</dd>`
+  $('mData').innerHTML =
+    row('Empresa', esc(l.company || '—')) + row('Cidade', esc(l.city || '—')) + row('Instagram', esc(l.instagram || '—')) +
+    row('Principal dor', esc(l.main_pain || '—')) +
+    row('Funcionários', esc(l.employees_band ? `${l.employees_band}${l.employees ? ` ("${l.employees}")` : ''}` : '—')) +
+    row('Faturamento', esc(l.revenue_band ? `${REVENUE[l.revenue_band]}${l.monthly_revenue ? ` ("${l.monthly_revenue}")` : ''}` : '—')) +
+    row('Nota', scoreBadge(l.score)) + row('Status', statusBadge(l.status)) + row('Origem', esc(l.origin)) +
+    row('Visita', visit ? `<b>${esc(fmtSlot(visit.starts_at))}</b><br><span class="muted">${esc(visit.address || '')}</span>` : '—') +
+    row('WhatsApp', esc(l.phone)) + row('Chegou em', esc(fmtAgo(l.created_at)))
+  $('mToggleAi').textContent = l.ai_paused ? 'Retomar Jarvis' : 'Pausar Jarvis'
+  $('mAiHint').textContent = l.ai_paused ? 'O Jarvis não está respondendo este lead. A equipe assume pelo WhatsApp da Wsmart.' : 'O Jarvis está atendendo este lead.'
+  $('mWa').href = `https://wa.me/${l.phone}`
+}
+async function refreshThread() {
+  const { data } = await sb.from('wsdr_messages').select('*').eq('lead_id', state.openLead).order('id').limit(300)
+  renderLeadDetail()
+  const t = $('mThread')
+  t.innerHTML = (data || []).map((m) => {
+    const who = m.direction === 'in' ? 'lead' : m.sent_by === 'owner' ? 'equipe Wsmart' : m.sent_by === 'system' ? 'Jarvis (automático)' : 'Jarvis'
+    return `<div class="bubble ${m.direction} ${m.sent_by === 'owner' ? 'owner' : ''}">${m.kind === 'audio' ? '🎙️ ' : ''}${esc(m.content || '')}<span class="meta">${who} · ${esc(fmtAgo(m.created_at))}</span></div>`
+  }).join('') || '<span class="muted">Sem mensagens.</span>'
+  t.scrollTop = t.scrollHeight
+}
+$('mClose').addEventListener('click', () => { state.openLead = null; $('leadModal').classList.add('hidden') })
+$('leadModal').addEventListener('click', (e) => { if (e.target.id === 'leadModal') $('mClose').click() })
+$('mToggleAi').addEventListener('click', async () => {
+  const l = leadById(state.openLead)
+  const visit = state.visits.find((v) => v.lead_id === l.id)
+  const patch = l.ai_paused
+    ? { ai_paused: false, status: visit ? 'agendado' : 'qualificando' }
+    : { ai_paused: true, status: 'humano' }
+  const { error } = await sb.from('wsdr_leads').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', l.id)
+  if (error) return alert(error.message)
+  await loadAll()
+})
+$('mDelete').addEventListener('click', async () => {
+  const l = leadById(state.openLead)
+  if (!confirm(`Excluir ${l.full_name || l.phone} e toda a conversa? Não dá para desfazer.`)) return
+  const { error } = await sb.from('wsdr_leads').delete().eq('id', l.id)
+  if (error) return alert(error.message)
+  $('mClose').click(); await loadAll()
+})
+
+// ── QR Code ──────────────────────────────────────────────────────────
+const qrLink = () => `https://wa.me/${$('qrNumber').value.replace(/\D/g, '')}?text=${encodeURIComponent($('qrMessage').value.trim())}`
+function fillQr() {
+  $('qrNumber').value = state.config?.wa_number || ''
+  $('qrMessage').value = state.config?.qr_message || 'Oi! Te conheci na Rodada de Negócios 👋'
+  drawQr()
+}
+function qrMatrix(text) { const q = qrcode(0, 'M'); q.addData(text); q.make(); return q }
+async function drawQr() {
+  const link = qrLink()
+  const hasNumber = $('qrNumber').value.replace(/\D/g, '').length >= 12
+  $('qrLink').textContent = hasNumber ? link : 'Informe o número da Wsmart para gerar o QR.'
+  $('qrOpen').href = link
+  for (const id of ['dlCard', 'dlQr', 'qrCopy']) $(id).disabled = !hasNumber
+  $('qrOpen').classList.toggle('hidden', !hasNumber)
+  $('qrWarn').classList.toggle('hidden', /rodada/i.test($('qrMessage').value))
+  await document.fonts.ready
+  const c = $('qrCanvas'), g = c.getContext('2d'), W = c.width, H = c.height
+  const bg = g.createLinearGradient(0, 0, 0, H); bg.addColorStop(0, '#0b1324'); bg.addColorStop(1, '#050811')
+  g.fillStyle = bg; g.fillRect(0, 0, W, H)
+  // reator
+  const cx = W / 2, cy = 150
+  g.save(); g.shadowColor = '#38d6ff'; g.shadowBlur = 40
+  g.strokeStyle = '#38d6ff'; g.lineWidth = 8; g.beginPath(); g.arc(cx, cy, 52, 0, Math.PI * 2); g.stroke()
+  g.fillStyle = '#dff8ff'; g.beginPath(); g.arc(cx, cy, 18, 0, Math.PI * 2); g.fill(); g.restore()
+  g.textAlign = 'center'; g.fillStyle = '#e6edf7'
+  g.font = '800 92px Orbitron'; g.fillText('JARVIS', cx, 300)
+  g.fillStyle = '#8fdcf5'; g.font = '500 38px Inter'; g.fillText('a inteligência artificial da Wsmart Digital', cx, 360)
+  // QR
+  const q = qrMatrix(link), n = q.getModuleCount(), size = 720, quiet = 36, cell = Math.floor((size - quiet * 2) / n)
+  const qrSize = cell * n + quiet * 2, x0 = (W - qrSize) / 2, y0 = 420
+  g.fillStyle = '#ffffff'; roundRect(g, x0, y0, qrSize, qrSize, 28); g.fill()
+  g.fillStyle = '#050811'
+  for (let r = 0; r < n; r++) for (let col = 0; col < n; col++) if (q.isDark(r, col)) g.fillRect(x0 + quiet + col * cell, y0 + quiet + r * cell, cell, cell)
+  g.fillStyle = '#e6edf7'; g.font = '700 46px Inter'; g.fillText('Aponte a câmera e fale comigo', cx, y0 + qrSize + 90)
+  g.fillStyle = '#8a9ab5'; g.font = '400 32px Inter'; g.fillText('Atendimento no WhatsApp · Wsmart Digital', cx, y0 + qrSize + 145)
+}
+function roundRect(g, x, y, w, h, r) { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath() }
+function download(canvas, name) { const a = document.createElement('a'); a.href = canvas.toDataURL('image/png'); a.download = name; a.click() }
+$('qrNumber').addEventListener('input', drawQr); $('qrMessage').addEventListener('input', drawQr)
+$('dlCard').addEventListener('click', () => download($('qrCanvas'), 'jarvis-wsmart-cartao-qr.png'))
+$('dlQr').addEventListener('click', () => {
+  const q = qrMatrix(qrLink()), n = q.getModuleCount(), cell = 24, quiet = 4 * cell
+  const c = document.createElement('canvas'); c.width = c.height = n * cell + quiet * 2
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height); g.fillStyle = '#000'
+  for (let r = 0; r < n; r++) for (let col = 0; col < n; col++) if (q.isDark(r, col)) g.fillRect(quiet + col * cell, quiet + r * cell, cell, cell)
+  download(c, 'jarvis-wsmart-qr.png')
+})
+$('qrCopy').addEventListener('click', async () => { await navigator.clipboard.writeText(qrLink()); flash('qrMsg', 'Link copiado.') })
+$('qrSave').addEventListener('click', async () => {
+  const { error } = await sb.from('wsdr_config').update({ wa_number: $('qrNumber').value.replace(/\D/g, ''), qr_message: $('qrMessage').value.trim(), updated_at: new Date().toISOString() }).eq('id', 1)
+  flash('qrMsg', error ? error.message : 'Salvo.', !!error)
+})
+
+// ── simulador ────────────────────────────────────────────────────────
+function simBubble(dir, html, meta) {
+  const t = $('simThread'); t.insertAdjacentHTML('beforeend', `<div class="bubble ${dir}">${html}${meta ? `<span class="meta">${meta}</span>` : ''}</div>`); t.scrollTop = t.scrollHeight
+}
+async function simSend(text) {
+  if (!text.trim()) return
+  const asAudio = $('simAudio').checked
+  simBubble('in', `${asAudio ? '🎙️ ' : ''}${esc(text)}`, asAudio ? 'você (áudio simulado)' : 'você')
+  $('simSend').disabled = true; $('simText').value = ''
+  simBubble('out', '<span class="muted">Jarvis digitando…</span>'); const typing = $('simThread').lastElementChild
+  try {
+    const r = await callFn('sim', { text, as_audio: asAudio })
+    typing.remove()
+    if (r.skipped === 'fora_da_campanha') simBubble('out', '<span class="muted">Jarvis ignorou: contato novo sem a palavra "Rodada". No modo "só leads da campanha", ele só responde quem chega pelo QR.</span>')
+    else if (r.skipped && !r.replies?.length) simBubble('out', `<span class="muted">Sem resposta (${esc(r.skipped)}).</span>`)
+    for (const rep of r.replies || []) {
+      const audio = rep.audioBase64 ? `<audio controls src="data:audio/wav;base64,${rep.audioBase64}"></audio>` : ''
+      simBubble('out', `${rep.kind === 'audio' ? '🎙️ ' : ''}${esc(rep.text)}${audio}`, 'Jarvis')
+    }
+    loadAll()
+  } catch (err) { typing.remove(); simBubble('out', `<span class="err">${esc(err.message)}</span>`) }
+  $('simSend').disabled = false; $('simText').focus()
+}
+$('simForm').addEventListener('submit', (e) => { e.preventDefault(); simSend($('simText').value) })
+$('simQrMsg').addEventListener('click', () => simSend(state.config?.qr_message || 'Oi! Te conheci na Rodada de Negócios'))
+$('simReset').addEventListener('click', async () => {
+  try { await callFn('clear_tests', {}); $('simThread').innerHTML = ''; loadAll() } catch (err) { alert(err.message) }
+})
+
+// ── configurações ────────────────────────────────────────────────────
+function fillSettings() {
+  const c = state.config; if (!c) return
+  $('cfgEnabled').checked = c.ai_enabled; $('cfgMode').value = c.reply_mode
+  $('cfgOwner').value = c.owner_phone || ''; $('cfgName').value = c.agent_name
+  $('cfgSlots').value = (c.slot_times || []).join(', '); $('cfgBlocked').value = (c.blocked_dates || []).join(', ')
+  $('cfgNotice').value = c.min_notice_hours; $('cfgBusiness').value = c.business_info
+  $('cfgDays').innerHTML = DAYS.map((d, i) => `<button type="button" class="chip ${(c.work_days || []).includes(i) ? 'on' : ''}" data-day="${i}">${d}</button>`).join('')
+}
+$('cfgDays').addEventListener('click', (e) => { const b = e.target.closest('[data-day]'); if (b) b.classList.toggle('on') })
+$('cfgForm').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const slots = $('cfgSlots').value.split(',').map((s) => s.trim()).filter(Boolean)
+  const blocked = $('cfgBlocked').value.split(',').map((s) => s.trim()).filter(Boolean)
+  if (slots.some((s) => !/^([01]\d|2[0-3]):[0-5]\d$/.test(s))) return flash('cfgMsg', 'Horários no formato HH:MM, ex.: 09:00, 14:30', true)
+  if (blocked.some((s) => !/^\d{4}-\d{2}-\d{2}$/.test(s))) return flash('cfgMsg', 'Datas no formato AAAA-MM-DD', true)
+  const patch = {
+    ai_enabled: $('cfgEnabled').checked, reply_mode: $('cfgMode').value,
+    owner_phone: $('cfgOwner').value.replace(/\D/g, '') || null, agent_name: $('cfgName').value.trim() || 'Jarvis',
+    slot_times: slots, blocked_dates: blocked, min_notice_hours: Number($('cfgNotice').value || 0),
+    work_days: [...document.querySelectorAll('#cfgDays .chip.on')].map((b) => Number(b.dataset.day)),
+    business_info: $('cfgBusiness').value.trim(), updated_at: new Date().toISOString(),
+  }
+  const { error } = await sb.from('wsdr_config').update(patch).eq('id', 1)
+  if (error) return flash('cfgMsg', error.message, true)
+  state.config = { ...state.config, ...patch }; flash('cfgMsg', 'Configurações salvas.'); loadWaStatus()
+})
+$('pwdForm').addEventListener('submit', async (e) => {
+  e.preventDefault()
+  const p1 = $('pwd1').value, p2 = $('pwd2').value
+  if (p1.length < 10) return flash('pwdMsg', 'Use pelo menos 10 caracteres.', true)
+  if (p1 !== p2) return flash('pwdMsg', 'As senhas não conferem.', true)
+  const { error } = await sb.auth.updateUser({ password: p1 })
+  if (error) return flash('pwdMsg', error.message, true)
+  $('pwd1').value = $('pwd2').value = ''; flash('pwdMsg', 'Senha alterada.')
+})
+function flash(id, text, isErr) { const el = $(id); el.textContent = text; el.className = `small ${isErr ? 'err' : 'ok'}`; setTimeout(() => { el.textContent = '' }, 5000) }
+
+// ── navegação ────────────────────────────────────────────────────────
+$('tabs').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-view]'); if (!b) return
+  state.view = b.dataset.view
+  document.querySelectorAll('#tabs button').forEach((x) => x.classList.toggle('on', x === b))
+  document.querySelectorAll('.view').forEach((v) => v.classList.toggle('hidden', v.id !== `v-${state.view}`))
+  if (state.view === 'qr') drawQr()
+  if (state.view === 'overview') loadWaStatus()
+})
+</script>
+</body>
+</html>
