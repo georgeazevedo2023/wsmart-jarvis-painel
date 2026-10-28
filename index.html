@@ -40,7 +40,8 @@
   /* layout */
   header.top { position: sticky; top: 0; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px;
     padding: 12px 20px; background: rgba(7,11,22,.85); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
-  nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 10px 20px; border-bottom: 1px solid var(--line); }
+  nav.tabs { display: flex; gap: 4px; overflow-x: auto; padding: 10px 20px; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+  nav.tabs::-webkit-scrollbar { display: none; }
   nav.tabs button { background: none; border: 0; padding: 8px 14px; border-radius: 999px; color: var(--muted); cursor: pointer; white-space: nowrap; }
   nav.tabs button.on { background: var(--cyan-dim); color: var(--cyan); }
   main { max-width: 1180px; margin: 0 auto; padding: 20px; }
