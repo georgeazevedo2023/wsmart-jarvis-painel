@@ -137,6 +137,8 @@
   .carousel .cc img { display: block; width: 132px; height: 132px; object-fit: cover; }
   .carousel .cc .ct { padding: 6px 8px; }
   .carousel .cc .cb { border-top: 1px solid var(--line); text-align: center; color: var(--cyan); padding: 6px; }
+  .bubble .media { display: block; margin: 2px 0 6px; max-width: 260px; max-height: 320px; border-radius: 10px; cursor: zoom-in; }
+  .bubble video.media { cursor: auto; }
   .card-edit { display: flex; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
   .card-edit img { width: 56px; height: 56px; border-radius: 8px; object-fit: cover; flex: 0 0 56px; }
 
@@ -555,15 +557,41 @@ async function refreshThread() {
   renderLeadDetail()
   const t = $('mThread')
   t.innerHTML = (data || []).map(msgBubble).join('') || '<span class="muted">Sem mensagens.</span>'
+  hydrateMedia(t)
   t.scrollTop = t.scrollHeight
 }
 function msgBubble(m) {
   const who = m.direction === 'in' ? 'lead' : m.sent_by === 'owner' ? 'equipe Wsmart' : m.sent_by === 'system' ? 'Jarvis (automático)' : 'Jarvis'
   const isCarousel = m.direction === 'out' && (m.content || '').startsWith('[carrossel]')
+  const text = m.content ? esc(m.content) : '<span class="muted">[mensagem sem texto]</span>'
   const body = isCarousel
     ? `${esc(state.config?.showcase_caption || 'Carrossel de clientes')}${carouselHtml(state.config?.showcase_cards || [])}`
-    : `${m.kind === 'audio' ? '🎙️ ' : ''}${esc(m.content || '')}`
+    : `${mediaHtml(m)}${m.kind === 'audio' ? '🎙️ ' : ''}${text}`
   return `<div class="bubble ${m.direction} ${m.sent_by === 'owner' ? 'owner' : ''}">${body}<span class="meta">${who} · ${esc(fmtAgo(m.created_at))}</span></div>`
+}
+// mídia do lead fica no bucket privado wsdr-media: o elemento nasce sem src e hydrateMedia assina a URL
+function mediaHtml(m) {
+  if (!m.media_path) return ''
+  const p = esc(m.media_path), mime = m.media_mime || ''
+  if (mime.startsWith('image/')) return `<img class="media" data-media="${p}" alt="imagem enviada pelo lead" title="Abrir em tamanho real">`
+  if (mime.startsWith('audio/')) return `<audio controls preload="none" data-media="${p}"></audio>`
+  if (mime.startsWith('video/')) return `<video class="media" controls preload="none" data-media="${p}"></video>`
+  return `<a data-media="${p}" target="_blank" rel="noopener">📎 Abrir arquivo</a><br>`
+}
+const signedUrls = new Map()
+async function hydrateMedia(root) {
+  const els = [...root.querySelectorAll('[data-media]:not([data-ready])')]
+  const missing = [...new Set(els.map((el) => el.dataset.media).filter((p) => !signedUrls.has(p)))]
+  if (missing.length) {
+    const { data } = await sb.storage.from('wsdr-media').createSignedUrls(missing, 6 * 3600)
+    for (const r of data || []) if (r.signedUrl) signedUrls.set(r.path, r.signedUrl)
+  }
+  for (const el of els) {
+    const url = signedUrls.get(el.dataset.media); if (!url) continue
+    el.dataset.ready = '1'
+    if (el.tagName === 'A') el.href = url; else el.src = url
+    if (el.tagName === 'IMG') el.addEventListener('click', () => window.open(url, '_blank', 'noopener'))
+  }
 }
 function carouselHtml(cards) {
   return `<div class="carousel">${cards.map((c) => `<div class="cc"><img src="${esc(c.image)}" alt="${esc(c.name)}" loading="lazy"><div class="ct"><b>${esc(c.name)}</b><br>${esc(c.text || '')}</div><div class="cb">Quero algo assim</div></div>`).join('')}</div>`
@@ -819,6 +847,7 @@ async function loadThread() {
     const t = $('chatThread'), first = inbox.lastId === 0
     const atBottom = t.scrollHeight - t.scrollTop - t.clientHeight < 80
     t.insertAdjacentHTML('beforeend', fresh.map(msgBubble).join(''))
+    hydrateMedia(t)
     inbox.lastId = fresh[fresh.length - 1].id
     seenSet(id, inbox.lastId)
     if (first || atBottom) t.scrollTop = t.scrollHeight
